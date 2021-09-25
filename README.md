@@ -1,6 +1,6 @@
 # pyindexedtar
 
-A "proof of concept" of a python class to work with indexed Tar for big data archives.
+A "proof of concept" of a python class to implementing an indexed Tar for big data archives.
 The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
 
@@ -28,6 +28,15 @@ preserve compat with existing tools
 * Use only the python standard library
 
 # Concept
+
+The trick here is to have a 'normal' binary file
+added at the beginning of the tar that serves as a
+pre-allocation of 2 unsigned long long to
+store offset and size of our json index.
+
+When we close the archive we write the index
+as the last file in the tar and seek back to the
+location of the offset and size to write it.
 
 ```
 ######
