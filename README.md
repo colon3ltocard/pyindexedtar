@@ -1,7 +1,7 @@
 # pyindexedtar
 
 A "proof of concept" of a python class to work with indexed Tar for big data archives.
-The use case is to retrieve members of a "many member" tar archive without seeking
+The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
 
 The idea is to add a first file at the beginning of the tar file which serves as
@@ -16,6 +16,14 @@ See **indexedtar/__init__.py** inlined documentation.
 
 The **IndexedTar** class depends only on the python standard library.
 
+# Requirements
+
+We constrained this poc as follows:
+
+* Produce archives fully compliant with the tar specification to
+preserve compat with existing tools
+
+* Use only the python standard library
 
 # Concept
 
@@ -51,9 +59,6 @@ This gives us the following workflow to retrieve a member 'A':
 ```
 open Indexedtar >>> read first member ( = index offset) >>> seek at index offset >>> read index >>> lookup 'A''s offset in index >>> read 'A'.
 ```
-
-
-
 
 # Usage
 
@@ -113,32 +118,32 @@ strace -e trace=lseek python benchmark.py fat.tar --mode indexed 2>&1 | grep lse
 ```
 **>>> 174 <<<**
 
-First conclusion: to get the last member, using the builtin TarFile there are 40801 lseek syscalls versus 174 for our IndexedTar.
+First conclusion: to get and extract the last member, using the builtin TarFile there are 40801 lseek syscalls versus 174 for our IndexedTar.
 
 ```
-time python tests.py fat.tar
+time python benchmark.py fat.tar --mode other
+<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7f8844a334c0>
 
+real	0m0,639s
+user	0m0,478s
+sys	0m0,039s
+
+time python benchmark.py fat.tar --mode indexed
 Opening fat.tar, pax-headers: {}
 Seeking header offset at 1536
-Seeking index json at 26860269056 of len 822118
-[<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7f7b9a4a1340>]
+Seeking index json at 26860269056 of len 821008
+[<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7fefdf038400>]
 
-real	0m0,070s
-user	0m0,061s
-sys	0m0,010s
+real	0m0,073s
+user	0m0,064s
+sys	0m0,011s
 
-time python tests.py fat.tar --mode other
-<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7f3b45064400>
-
-real	0m0,502s
-user	0m0,478s
-sys	0m0,025s
 
 ```
 
 Second conclusion: to get a member at the end of the archive, even on a SSD, we are 7x times faster.
 
-# Cross compatiblity
+# Compatiblity checks
 
 Our archive stills open with the standard cli tool or GUi tool on Ubuntu.
 
