@@ -23,6 +23,8 @@ We constrained this poc as follows:
 * Produce archives fully compliant with the tar specification to
 preserve compat with existing tools
 
+* No additional index file, the archive should be 'all inclusive'
+
 * Use only the python standard library
 
 # Concept
