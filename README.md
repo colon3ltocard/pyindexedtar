@@ -165,3 +165,8 @@ Our archive stills open with the standard cli tool or GUi tool on Ubuntu.
 -rw-rw-r-- frank/frank 3303788 2021-08-06 10:08 10_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2
 ...
 ```
+
+# Todo and ideas
+
+* add highwayhash (SIMD, should perform ! ) checksums for each file in the index
+* work on robustness and security (protect our two 'special' files in the tar archive)
