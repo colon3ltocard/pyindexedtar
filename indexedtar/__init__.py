@@ -192,6 +192,13 @@ class IndexedTar:
                 self._tarfile.offset = m_info_offset
                 yield self._tarfile.next()
 
+    def extract_members(self, members: list, path: pathlib.Path = pathlib.Path(".")):
+        """
+        Extracts members into dstdir.
+        Same risks and limitations as in python TarFile.
+        """
+        self._tarfile.extractall(path=path, members=members)
+
     def close(self):
         """
         Writes the index, seeks back to our header to write
