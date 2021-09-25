@@ -90,15 +90,25 @@ print([x for x in it.get_members_by_name("8125_arome-france-hd_v2_2021-08-05_00_
 
 # Benchmark on a NVMe SSD and a 26.9 GB archive
 
-We built a "big tar" archive of 26.9 GB with 8000+ entries made of grib2 data files.
+
+We built a "big tar" archive of 26.9 GB with 8000+ entries made of grib2 data files using the follwing cmd:
 
 ```
-strace -e trace=lseek python tests.py fat.tar --mode other 2>&1 | grep lseek |wc -l
+export PYTHONPATH="."; python indexedtar/utils.py
+ls -lh fat.tar
+-rw-rw-r-- 1 frank frank 26G sept. 25 18:24 fat.tar
+```
+
+Next we trace lseek syscalls.
+
+
+```
+strace -e trace=lseek python benchmark.py fat.tar --mode other 2>&1 | grep lseek |wc -l
 ```
 **>>> 40801 <<<**
 
 ```
-strace -e trace=lseek python tests.py fat.tar --mode indexed 2>&1 | grep lseek |wc -l
+strace -e trace=lseek python benchmark.py fat.tar --mode indexed 2>&1 | grep lseek |wc -l
 
 ```
 **>>> 174 <<<**
