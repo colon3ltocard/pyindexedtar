@@ -1,6 +1,6 @@
 # pyindexedtar
 
-A "proof of concept" of a python class to implementing an indexed Tar for big data archives.
+A "proof of concept" of a python class implementing an indexed Tar for big data archives.
 The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
 
@@ -21,7 +21,7 @@ The **IndexedTar** class depends only on the python standard library.
 We constrained this poc as follows:
 
 * Produce archives fully compliant with the tar specification to
-preserve compat with existing tools
+preserve compatibility with existing tools
 
 * No additional index file, the archive should be 'all inclusive'
 
