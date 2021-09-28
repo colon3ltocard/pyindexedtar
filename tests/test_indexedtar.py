@@ -1,4 +1,3 @@
-import json
 import tarfile
 from pathlib import Path
 import tempfile
@@ -118,3 +117,19 @@ def test_add_dir(data_dir):
         with IndexedTar(itar_path, "x:") as it:
             it.add_dir(data_dir)
             it.add_dir(data_dir, recurse=True)  # todo: check with proper nested dirs
+
+
+def test_extract(ithelper):
+    """
+    Testing the top level method
+    for extracting into a directory
+    """
+    with tempfile.TemporaryDirectory() as td:
+        no_files: int = 4
+        with ithelper.build_indexedtarfile(no_files) as itar_path:
+            with IndexedTar(itar_path) as it:
+                members = []
+                for i in range(no_files):
+                    members.append(next(it.get_members_by_name(f"{i}_arome.grib2")))
+                it.extract_members(members, path=td)
+                assert len([x for x in Path(td).glob("*.grib2")]) == 4
