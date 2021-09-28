@@ -16,6 +16,11 @@ AROME_FILE = DATADIR / "arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2
 
 
 @pytest.fixture(scope="session")
+def data_dir():
+    return DATADIR
+
+
+@pytest.fixture(scope="session")
 def arome_grib2() -> Path:
     """
     Returns the Path to our arome-hd grib2 testfile
@@ -42,27 +47,29 @@ class IndexedTarHelper:
         """
         given an IndexedTar file, corrupts its header
         """
-        tf = tarfile.TarFile(itarf)
-        htinfo = tf.getmember(IndexedTar._header_filename)
-        tf.fileobj.seek(htinfo.offset_data)
-        tf.fileobj.write(IndexedTar._header_struct.pack(corruption))
-        tf.fileobj.flush()
-        tf.close()
+        print(itarf, itarf.stat().st_size)
+        with tarfile.TarFile(itarf, "r") as tf:
+            # print(tf.getmembers())
+            htinfo = tf.getmember(IndexedTar._header_filename)
+        with open(tf.name, "r+b") as dst:
+            dst.seek(htinfo.offset_data)
+            dst.write(IndexedTar._header_struct.pack(*corruption))
 
     @staticmethod
+    @contextmanager
     def build_tarfile(no_files: int) -> Path:
         """
         Builds a 'classic' tarfile of the desired number of files
         using our 3.3 MB arome data file
         """
-        dst = tempfile.NamedTemporaryFile(suffix=".tar", delete=False)
-        fp = arome_grib2()
+        with tempfile.TemporaryDirectory() as dst:
+            fp = AROME_FILE
+            dst_file = Path(dst) / "basic_tar.tar"
+            with tarfile.TarFile(dst_file, mode="x") as tf:
+                for i in range(no_files):
+                    tf.add(fp, arcname=f"{i}_arome.grib2")
 
-        with tarfile.TarFile(dst.name, mode="x:") as tf:
-            for i in range(no_files):
-                tf.add(fp, arcname=f"{i}_arome.grib2")
-
-        return dst
+            yield dst_file
 
     @staticmethod
     @contextmanager
@@ -78,10 +85,9 @@ class IndexedTarHelper:
                 for i in range(no_files):
                     it.add(fp, arcname=f"{i}_arome.grib2")
 
-            yield Path(dst_file)
+            yield dst_file
 
 
 @pytest.fixture(scope="session")
 def ithelper():
     return IndexedTarHelper()
-
