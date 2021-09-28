@@ -1,4 +1,4 @@
-![example workflow](https://github.com/colon3ltocard/pyindexedtar/actions/workflows/build/yml/badge.svg)
+![example workflow](https://github.com/colon3ltocard/pyindexedtar/actions/workflows/build.yml/badge.svg)
 # pyindexedtar
 
 A python class implementing an indexed Tar for big data archives.
