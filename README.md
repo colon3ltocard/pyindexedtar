@@ -1,6 +1,7 @@
+![example workflow](https://github.com/colon3ltocard/pyindexedtar/actions/workflows/build/yml/badge.svg)
 # pyindexedtar
 
-A "proof of concept" of a python class implementing an indexed Tar for big data archives.
+A python class implementing an indexed Tar for big data archives.
 The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
 
