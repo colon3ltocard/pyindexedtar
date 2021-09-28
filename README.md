@@ -17,9 +17,9 @@ See **indexedtar/__init__.py** inlined documentation.
 
 The **IndexedTar** class depends only on the python standard library.
 
-# Requirements
+# Goals
 
-We constrained this poc as follows:
+We constrained this code as follows:
 
 * Produce archives fully compliant with the tar specification to
 preserve compatibility with existing tools
@@ -28,6 +28,49 @@ preserve compatibility with existing tools
 
 * Use only the python standard library
 
+# Usage
+
+See the [unit test](https://github.com/colon3ltocard/pyindexedtar/blob/master/tests/test_indexedtar.py) for usage examples.
+
+## Create an archive.
+
+```python
+DATA_DIR = pathlib.Path("/home/frank/dev/mf-models-on-s3-scraping")
+
+from indexedtar import IndexedTar
+
+it = IndexedTar("test.tar", mode="x:")
+it.add_dir(DATA_DIR)
+it.close()
+```
+## Get a tarmember by index
+
+```python
+DATA_DIR = pathlib.Path("/home/frank/dev/mf-models-on-s3-scraping")
+
+from indexedtar import IndexedTar
+it = IndexedTar(pathlib.Path("fat.tar"), mode="r:")
+tinfo = it.getmember_at_index(5) # get 5th member from the archive
+print(tinfo.name)
+```
+
+## Extracting some members
+```python
+with IndexedTar(itar_path) as it:
+    members = []
+    for i in range(4):
+        members.append(next(it.get_members_by_name(f"{i}_arome.grib2")))
+    it.extract_members(members, path=td)
+```
+
+## Get  members matching a name
+
+```python
+
+from indexedtar import IndexedTar
+it = IndexedTar(pathlib.Path("fat.tar"), mode="r:")
+print([x for x in it.get_members_by_name("8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2")])
+```
 # Concept
 
 The trick here is to have a 'normal' binary file
@@ -70,39 +113,6 @@ _tar_index.json data                                o
 This gives us the following workflow to retrieve a member 'A':
 ```
 open Indexedtar >>> read first member ( = index offset) >>> seek at index offset >>> read index >>> lookup 'A''s offset in index >>> read 'A'.
-```
-
-# Usage
-
-## Create an archive.
-
-```python
-DATA_DIR = pathlib.Path("/home/frank/dev/mf-models-on-s3-scraping")
-
-from indexedtar import IndexedTar
-
-it = IndexedTar("test.tar", mode="x:")
-it.add_dir(DATA_DIR)
-it.close()
-```
-## Get a tarmember by index
-
-```python
-DATA_DIR = pathlib.Path("/home/frank/dev/mf-models-on-s3-scraping")
-
-from indexedtar import IndexedTar
-it = IndexedTar(pathlib.Path("fat.tar"), mode="r:")
-tinfo = it.getmember_at_index(5) # get 5th member from the archive
-print(tinfo.name)
-```
-
-## Get  members matching a name
-
-```python
-
-from indexedtar import IndexedTar
-it = IndexedTar(pathlib.Path("fat.tar"), mode="r:")
-print([x for x in it.get_members_by_name("8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2")])
 ```
 
 # Benchmark on a NVMe SSD and a 26.9 GB archive made of 3.2MB files
