@@ -24,7 +24,7 @@ _tar_offset.bin tar header
 _tar_offset.bin payload
 unsigned long long value1 => points to >>>>>------------------|
 unsigned long long value2 => points to index data
-unsigned long long  value3 => index len                       | 
+unsigned long long  value3 => index len                       |
 ######                                                        |
 FILE 1 - tar header                                           |
 -----                                                         |
