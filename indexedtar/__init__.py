@@ -59,7 +59,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
-logger.setLevel("DEBUG")
+logger.setLevel("INFO")
 
 
 class IndexedTarException(Exception):
