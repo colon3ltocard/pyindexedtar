@@ -56,11 +56,12 @@ print(tinfo.name)
 
 ## Extracting some members
 ```python
-with IndexedTar(itar_path) as it:
-    members = []
-    for i in range(4):
-        members.append(next(it.get_members_by_name(f"{i}_arome.grib2")))
-    it.extract_members(members, path=td)
+with tempfile.TemporaryDirectory() as td:
+    with IndexedTar(Path("my_indexed_archive.tar)) as it:
+        members = []
+        for i in range(4):
+            members.append(next(it.get_members_by_name(f"{i}_arome.grib2")))
+        it.extract_members(members, path=td)
 ```
 
 ## Get  members matching a name
