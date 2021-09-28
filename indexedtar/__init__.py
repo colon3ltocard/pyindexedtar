@@ -11,8 +11,8 @@ made of many files for a big data archiving software.
 
 The trick here is to have a 'normal' binary file
 added at the beginning of the tar that serves as a
-pre-allocation of 2 unsigned long long to
-store offset and size of our index.
+pre-allocation of 3 unsigned long long to
+store header and data offsets + the size of our index.
 
 When we close the archive we write the index
 as the last file in the tar and seek back to the
@@ -23,7 +23,8 @@ _tar_offset.bin tar header
 -----
 _tar_offset.bin payload
 unsigned long long value1 => points to >>>>>------------------|
-unsigned long long  value2 => index len                       | 
+unsigned long long value2 => points to index data
+unsigned long long  value3 => index len                       | 
 ######                                                        |
 FILE 1 - tar header                                           |
 -----                                                         |
@@ -52,7 +53,7 @@ import json
 import pathlib
 import tempfile
 from contextlib import contextmanager
-from typing import IO
+from typing import IO, Union
 import logging
 
 
@@ -61,7 +62,7 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel("DEBUG")
 
 
-class IndexTarException(Exception):
+class IndexedTarException(Exception):
     pass
 
 
@@ -87,12 +88,14 @@ class IndexedTar:
     when the archive is closed.
     Compression is disabled.
     """
+
     _allowed_tar_modes = ("r:", "x:", "a:")
     _index_filename = "_tar_index.json"
     _header_filename = "_tar_offset.bin"
-    _header_struct = struct.Struct(">QQ")
+    _header_struct = struct.Struct(">QQQ")
     _index_pax_key = "index_seek_offset"
     _header_offset_in_tar = None
+    _version = "1.0"
 
     def __init__(self, filepath: pathlib.Path, mode: str = "r:") -> None:
         """
@@ -100,19 +103,58 @@ class IndexedTar:
         """
 
         if mode not in self._allowed_tar_modes:
-            raise IndexTarException(f"Requested {mode=} is not supported (must be in {self._allowed_tar_modes})")
+            raise IndexedTarException(
+                f"Requested {mode=} is not supported (must be in {self._allowed_tar_modes})"
+            )
 
+        self._mode = mode
         self._tarfile = tarfile.open(filepath, mode=mode, format=tarfile.PAX_FORMAT)
-        
-        if mode in ("r:", "a:"):
-            logger.debug(f"Opening {filepath.name}, pax-headers: {self._tarfile.pax_headers}")
 
-            header_offset = self._tarfile.next().offset_data
-            logger.debug(f"Seeking header offset at {header_offset}")
-            with seek_at_and_restore(self._tarfile.fileobj, header_offset):
-                index_offset, index_size = self._header_struct.unpack(self._tarfile.fileobj.read(self._header_struct.size))
-            
-            logger.debug(f"Seeking index json at {index_offset} of len {index_size}")
+        if mode in ("r:", "a:"):
+
+            if "indexed_tar" not in self._tarfile.pax_headers:
+                raise IndexedTarException(
+                    f"Attempting to read or append to a non IndexedTar {filepath.name}"
+                )
+
+            first_member = self._tarfile.next()
+            if (
+                first_member.name != self._header_filename
+                or first_member.size != self._header_struct.size
+            ):
+                raise IndexedTarException(
+                    f"First file in tar {first_member.name} is not a valid IndexedTar header"
+                )
+
+            logger.debug(f"Seeking header offset at {first_member.offset_data}")
+            with seek_at_and_restore(self._tarfile.fileobj, first_member.offset_data):
+                (
+                    index_tar_header_offset,
+                    index_offset,
+                    index_size,
+                ) = self._header_struct.unpack(
+                    self._tarfile.fileobj.read(self._header_struct.size)
+                )
+
+            if index_offset + index_size > filepath.stat().st_size:
+                raise IndexedTarException(
+                    f"Invalid Index past end of file {filepath.name}"
+                )
+
+            logger.debug(f"Reading index tar header at {index_tar_header_offset}")
+            with seek_at_and_restore(self._tarfile.fileobj, index_tar_header_offset):
+                tinfo = self._tarfile.next()
+                if tinfo.name != self._index_filename:
+                    raise IndexedTarException(
+                        f"Invalid index filename, got {tinfo.name}, expected {self._index_filename}"
+                    )
+
+                if tinfo.size != index_size:
+                    raise IndexedTarException(
+                        "Inconsistency between index size in tar header and indexedtar header, file has been corrupted ?"
+                    )
+
+            logger.debug(f"Reading index json at {index_offset} of len {index_size}")
             with seek_at_and_restore(self._tarfile.fileobj, index_offset):
                 raw_index = self._tarfile.fileobj.read(index_size).decode("utf-8")
                 self._index = json.loads(raw_index)
@@ -127,13 +169,18 @@ class IndexedTar:
         file
         """
         if len(self._tarfile.getmembers()) > 0:
-            raise IndexTarException("_init_header MUST be called at archive creation")
+            raise IndexedTarException("_init_header MUST be called at archive creation")
 
         tinfo = tarfile.TarInfo(self._header_filename)
         tinfo.size = self._header_struct.size
         tinfo.mtime = time.time()
-        self._header_offset_in_tar = self._tarfile.offset + self._get_tarinfo_size(tinfo)
-        self._tarfile.addfile(tinfo, fileobj=io.BytesIO(initial_bytes=b"0x00"*tinfo.size))
+        self._header_offset_in_tar = self._tarfile.offset + self._get_tarinfo_size(
+            tinfo
+        )
+        self._tarfile.pax_headers["indexed_tar"] = self._version
+        self._tarfile.addfile(
+            tinfo, fileobj=io.BytesIO(initial_bytes=b"0x00" * tinfo.size)
+        )
         logger.debug(f"Header offset in tar is {self._header_offset_in_tar}")
 
     def _get_tarinfo_size(self, tinfo: tarfile.TarInfo):
@@ -141,14 +188,25 @@ class IndexedTar:
         Given a TarInfo, returns its size
         in our TarFile context
         """
-        return len(tinfo.tobuf(self._tarfile.format, self._tarfile.encoding, self._tarfile.errors))
+        return len(
+            tinfo.tobuf(
+                self._tarfile.format, self._tarfile.encoding, self._tarfile.errors
+            )
+        )
 
-    def add_one_file(self, filepath: pathlib.Path, arcname=None):
+    def add(self, filepath: pathlib.Path, arcname=None):
         """
         Adds one file to the tar archive and indexes its seek offset
         """
         if not filepath.is_file():
-            raise IndexTarException(f"only files can be added to an IndexedTar, {filepath} is not a file.")
+            raise IndexedTarException(
+                f"only files can be added to an IndexedTar, {filepath} is not a file."
+            )
+
+        if self._mode not in ("x:", "a:"):
+            raise IndexedTarException(
+                f"Cannot add a file to read only IndexedTar {self._tarfile}"
+            )
 
         logger.debug(f"Adding {filepath} to {self._tarfile.name}")
         tinfo_offset = self._tarfile.offset
@@ -164,30 +222,40 @@ class IndexedTar:
         into subdirs
         """
         if not dir2archive.is_dir():
-            raise IndexTarException(f"{dir2archive} MUST be a dir")
-        
+            raise IndexedTarException(f"{dir2archive} MUST be a dir")
+
+        if self._mode not in ("x:", "a:"):
+            raise IndexedTarException(
+                f"Cannot add files to read only IndexedTar {self._tarfile}"
+            )
+
         if recurse:
             for f in dir2archive.rglob("*"):
                 if f.is_file():
-                    self.add_one_file(f)
+                    self.add(f)
         else:
             for f in dir2archive.iterdir():
                 if f.is_file():
-                    self.add_one_file(f)
+                    self.add(f)
 
     def getmember_at_index(self, index: int) -> tarfile.TarInfo:
         """
-        Returns themember at index from the archive 
+        Returns themember at index from the archive
         """
         _, info_offset, _, _ = self._index[index]
         self._tarfile.offset = info_offset
         return self._tarfile.next()
 
-    def get_members_by_name(self, name: str):
+    def get_members_by_name(self, name: str, do_reversed: bool = False)-> tarfile.TarInfo:
         """
-        Generator of members matching a name
+        Generator of members matching a name.
+        Set reversed to true to iterate from the end of the index.
         """
-        for mname, m_info_offset, _ , _ in self._index:
+
+        idx_gen = (x for x in self._index)
+        idx_gen = reversed(idx_gen) if do_reversed else idx_gen
+
+        for mname, m_info_offset, _, _ in idx_gen:
             if mname == name:
                 self._tarfile.offset = m_info_offset
                 yield self._tarfile.next()
@@ -205,27 +273,57 @@ class IndexedTar:
         the index offset and finally closes the tar archive
         """
 
-        if self._header_offset_in_tar is None:
-            raise IndexTarException("Cannot close this archive")
+        if self._mode in ("x:", "a:"):
 
-        logger.debug(f"Closing IndexedTar {self._tarfile.name}")
-        with tempfile.NamedTemporaryFile("r+b") as tmp:
-            index_json = json.dumps(self._index).encode("utf-8")
-            tmp.write(index_json)
-            tmp.flush()
-            tmp.seek(0)
-            tinfo = self._tarfile.gettarinfo(tmp.name, arcname=self._index_filename)
-            data_offset = self._tarfile.offset + self._get_tarinfo_size(tinfo)
-            self._tarfile.addfile(tinfo, fileobj=tmp)
+            if self._header_offset_in_tar is None:
+                raise IndexedTarException("Cannot close this archive")
 
-            # now we need to seek at the beginning of the archive and write our
-            # header file pointing to this index
+            logger.debug(f"Closing IndexedTar {self._tarfile.name}")
+            with tempfile.NamedTemporaryFile("r+b") as tmp:
+                index_json = json.dumps(self._index).encode("utf-8")
+                tmp.write(index_json)
+                tmp.flush()
+                tmp.seek(0)
+                tinfo = self._tarfile.gettarinfo(tmp.name, arcname=self._index_filename)
+                tar_header_offset = self._tarfile.offset
+                data_offset = self._tarfile.offset + self._get_tarinfo_size(tinfo)
+                self._tarfile.addfile(tinfo, fileobj=tmp)
 
-            logger.debug(f"Overwriting header at {self._header_offset_in_tar} with {(data_offset, tinfo.size)}")
-            with seek_at_and_restore(self._tarfile.fileobj, self._header_offset_in_tar):
-                self._tarfile.fileobj.write(self._header_struct.pack(data_offset, tinfo.size))
-            self._tarfile.fileobj.flush()
+                # now we need to seek at the beginning of the archive and write our
+                # header file pointing to this index
+
+                logger.debug(
+                    f"Overwriting header at {self._header_offset_in_tar} with {(data_offset, tinfo.size)}"
+                )
+                with seek_at_and_restore(self._tarfile.fileobj, self._header_offset_in_tar):
+                    self._tarfile.fileobj.write(
+                        self._header_struct.pack(tar_header_offset, data_offset, tinfo.size)
+                    )
+                self._tarfile.fileobj.flush()
 
             self._tarfile.close()
             self._tarfile = None
 
+    def __enter__(self):
+        if self._tarfile and not self._tarfile.closed:
+            return self
+        else:
+            return IndexedTarException("IndexedTar is closed")
+
+    def extractfile(self, member: Union[str, tarfile.TarInfo]):
+        """Extract a member from the archive as a file object. `member' may be
+           a filename or a TarInfo object. If `member' is a regular file or a
+           link, an io.BufferedReader object is returned. Otherwise, None is
+           returned.
+        """
+        if isinstance(member, str):
+            tinfo = reversed(self.get_members_by_name(member))[0]
+        elif isinstance(member, tarfile.TarInfo):
+            tinfo = member
+        else:
+            raise IndexedTarException(f"Cannot extract {member}, must be an instance of str or TarInfo")
+
+        return self._tarfile.extractfile(tinfo)
+
+    def __exit__(self, type, value, traceback):
+        self.close()
