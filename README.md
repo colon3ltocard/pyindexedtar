@@ -290,9 +290,5 @@ Our archive stills open with the standard cli tool or GUi tool on Ubuntu.
 
 # Todo and ideas
 
-* instead of the _tar_offset.bin file try to pre-allocate a pax-header and use it to store our 16 bytes ?
-* since the index file is the last file in the tar we could append the 16 bytes at the end it (we 
-would have to handle the tar padding to reach it though) ? 
-* Add support for appending to an existing IndexedTar (that would require a new index)
 * add highwayhash (SIMD, should perform ! ) checksums for each file in the index
-* work on robustness and security (protect our two 'special' files in the tar archive)
+* See if we could handle 'tar.gz' compressed archive using ["IndexedGzip"]("https://github.com/pauldmccarthy/indexed_gzip") ?
