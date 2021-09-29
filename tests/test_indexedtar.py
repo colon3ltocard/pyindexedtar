@@ -164,3 +164,44 @@ def test_extract(ithelper):
                     members.append(next(it.get_members_by_name(f"{i}_arome.grib2")))
                 it.extract_members(members, path=td)
                 assert len([x for x in Path(td).glob("*.grib2")]) == 4
+
+
+def test_edge_cases(ithelper, arpege_grib2: Path):
+    """
+    we are supposed to raise in several
+    edge cases
+    """
+    no_files: int = 4
+    with ithelper.build_indexedtarfile(no_files) as itar_path:
+        with IndexedTar(itar_path) as it:
+            # adding to a read-only it is forbidden
+            with pytest.raises(IndexedTarException):
+                it.add(arpege_grib2)
+            
+        with IndexedTar(itar_path, "a:") as it:
+
+            # adding a file with add_dir is forbidden
+            with pytest.raises(IndexedTarException):
+                it.add_dir(arpege_grib2)
+
+            # adding a dir with add is forbidden
+            with pytest.raises(IndexedTarException):
+                it.add(arpege_grib2.parent)
+
+            # supplying a member of than Union[str, TarInfo] is forbidden
+            with pytest.raises(IndexedTarException):
+                it.extractfile(arpege_grib2)
+
+            # compression is not supported
+            for unsupported_mode in ('r:gz', 'r:bz2', 'r:xz'):
+                with pytest.raises(IndexedTarException):
+                    IndexedTar(itar_path, mode=unsupported_mode)
+            
+            # A closed IndexedTar object cannot be used as 
+            # a contextmanager anymore
+            it = IndexedTar(itar_path)
+            it.close()
+            with pytest.raises(IndexedTarException):
+                with(it) as itt:
+                    itt.get_members_fnmatching("*")
+

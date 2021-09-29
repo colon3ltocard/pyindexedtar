@@ -379,15 +379,16 @@ class IndexedTar:
                         )
                     )
                 self._tarfile.fileobj.flush()
-
+        
+        if self._tarfile:
             self._tarfile.close()
-            self._tarfile = None
+        self._tarfile = None
 
     def __enter__(self):
         if self._tarfile and not self._tarfile.closed:
             return self
         else:
-            return IndexedTarException("IndexedTar is closed")
+            raise IndexedTarException("IndexedTar is closed")
 
     def extractfile(self, member: Union[str, tarfile.TarInfo]):
         """Extract a member from the archive as a file object. `member' may be
@@ -408,3 +409,4 @@ class IndexedTar:
 
     def __exit__(self, type, value, traceback):
         self.close()
+        return False
