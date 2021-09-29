@@ -10,6 +10,7 @@ import time
 import tempfile
 from indexedtar import IndexedTar
 
+
 def create_super_fat_tar(
     onefile: Path, fat_tar: Path = Path("fat.tar"), target_size: int = 2 * 1024 ** 3
 ):
@@ -29,6 +30,7 @@ def create_super_fat_tar(
         it.add(onefile, arcname=f"{i}_{onefile.name}")
     it.close()
 
+
 def extract_indexed(src: Path, member_name: str, path: Path = Path(".")):
     with IndexedTar(src, mode="r:") as it:
         mbrs = [x for x in it.get_members_by_name(member_name)]
@@ -47,14 +49,17 @@ def extract_gnu_tar(src: Path, member_name: str, path: Path = Path(".")):
 
 if __name__ == "__main__":
     working_dir = Path(".") / ".benchmark"
-    
+
     if not working_dir.exists():
         working_dir.mkdir()
 
     fat_tar = working_dir / "fat.tar"
 
     if not fat_tar.exists():
-        create_super_fat_tar(Path("tests/data/arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"), fat_tar=fat_tar)
+        create_super_fat_tar(
+            Path("tests/data/arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"),
+            fat_tar=fat_tar,
+        )
 
     last_member_name = "6094_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"
     repeat = 10

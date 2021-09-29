@@ -16,7 +16,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords=["tar", "indexed", "archives"],
     packages=("indexedtar",),
-    entry_points = {
-        'console_scripts': ['itar=indexedtar.itar:main'],
-    }
+    entry_points={
+        "console_scripts": ["itar=indexedtar.itar:main"],
+    },
 )

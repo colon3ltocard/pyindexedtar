@@ -125,6 +125,15 @@ When we close the archive we write the index
 as the last file in the tar and seek back to the
 location of the offset and size to write it.
 
+The index itself is a json `_tar_index.json` listing
+all the files in the tar including duplicates. For each file we
+store its tar header offset, its tar data offset and
+its tar data length.
+
+```json
+[["my_first_file", 3072, 4608, 352392], ["my_second_file", 357376, 358912, 352392], ["my_third_file", 711680, 713216, 352392]]
+```
+
 ```
 ######
 _tar_offset.bin tar header
