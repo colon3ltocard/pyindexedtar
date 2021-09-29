@@ -17,7 +17,56 @@ preserve compatibility with existing tools
 
 * Use only the python standard library
 
-# Usage
+# Installation
+
+For now I haven't released on pypi.
+
+```
+python setup.py install
+```
+
+Note: when using pyenv I needed to reactivate my virtualenv post-install to have the **itar** cli available.
+
+# Usage of the `itar` cli
+
+```bash
+itar --help
+usage: itar [-h] [--target TARGET] [--fnmatch_filter FNMATCH_FILTER] [--output_dir OUTPUT_DIR] action archive
+
+IndexedTar build/extract utility.
+
+positional arguments:
+  action                action to perform: "x" for extract, "l" for listing, "c" for create, "a" for append
+  archive               path to archive file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --target TARGET       file or directory to add
+  --fnmatch_filter FNMATCH_FILTER
+                        fnmatch filter for listing/extracting archive members
+  --output_dir OUTPUT_DIR
+                        output directory for extraction
+```
+
+Create an archive  with the files in the **tests/data** directory.
+
+```bash
+itar c test.tar --target tests/data
+```
+
+List archive members matching a fnmatch pattern.
+
+```bash
+itar l test.tar --fnmatch_filter "*3h.grib2"
+```
+
+Extract members matching a fnmatch pattern to output directory.
+
+```bash
+itar x test.tar --fnmatch_filter "*arome*.grib2" --output_dir out
+```
+
+# Usage of the `IndexedTar` class
 
 See the [unit tests](https://github.com/colon3ltocard/pyindexedtar/blob/master/tests/test_indexedtar.py) for usage examples.
 

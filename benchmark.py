@@ -5,7 +5,6 @@ IndexTar versus Tarfile
 
 import tarfile
 import pathlib
-import sys
 import argparse
 from indexedtar import IndexedTar
 
