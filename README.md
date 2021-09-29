@@ -1,21 +1,10 @@
 ![example workflow](https://github.com/colon3ltocard/pyindexedtar/actions/workflows/build.yml/badge.svg)
 # pyindexedtar
 
-A python class implementing an indexed Tar for big data archives.
+An indexed Tar for big data archives featuring fast random access with an index bundled inside the tarfile.
+
 The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
-
-The idea is to add a first file at the beginning of the tar file which serves as
-a pre-allocation to store the offset of an index for all files in the archive.
-
-The goal is to be able to reach any file in the tar by seeking only once to the index and
-then directly to the file offset in the tar found using said index.
-
-The file produced is still a fully compliant tar archive.
-
-See **indexedtar/__init__.py** inlined documentation.
-
-The **IndexedTar** class depends only on the python standard library.
 
 # Goals
 
@@ -24,13 +13,13 @@ We constrained this code as follows:
 * Produce archives fully compliant with the tar specification to
 preserve compatibility with existing tools
 
-* No additional index file, the archive should be 'all inclusive'
+* No additional index file, the archive should contain the index and be 'all inclusive'
 
 * Use only the python standard library
 
 # Usage
 
-See the [unit test](https://github.com/colon3ltocard/pyindexedtar/blob/master/tests/test_indexedtar.py) for usage examples.
+See the [unit tests](https://github.com/colon3ltocard/pyindexedtar/blob/master/tests/test_indexedtar.py) for usage examples.
 
 ## Create an archive.
 
@@ -72,6 +61,36 @@ from indexedtar import IndexedTar
 it = IndexedTar(pathlib.Path("fat.tar"), mode="r:")
 print([x for x in it.get_members_by_name("8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2")])
 ```
+
+## Get members matching a regex or a fnmatch pattern
+
+```python
+    no_files = 6
+    with tempfile.TemporaryDirectory() as td:
+        tdp = Path(td)
+        with IndexedTar(tdp / "indexed.tar", "x:") as it:
+            # let's simulate an archive spawning over
+            # several days of data with a jump
+            for the_date in ("2021_01_25", "2021_01_26", "2021_02_01"):
+                for i in range(no_files):
+                    it.add(arome_grib2, arcname=f"{the_date}/{i}_arome_t.grib2")
+        
+        with IndexedTar(tdp / "indexed.tar", "r:") as it:
+            # Now we read members using our filter methods
+            assert len(list(it.get_members_fnmatching("2021_01_26/*"))) == no_files
+            assert len(list(it.get_members_fnmatching("2021_01_26/*", do_reversed=True))) == no_files
+            assert len(list(it.get_members_fnmatching("*"))) == no_files*3
+
+            assert len(list(it.get_members_re("^2021"))) == no_files*3
+            assert len(list(it.get_members_re("^2021_02_01"))) == no_files
+            assert len(list(it.get_members_re("^2021_02_01", True))) == no_files
+
+            assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2", True))) == 1
+            assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2"))) == 1
+
+            assert it.getmember_at_index(0).name == "2021_01_25/0_arome_t.grib2"
+```
+
 # Concept
 
 The trick here is to have a 'normal' binary file

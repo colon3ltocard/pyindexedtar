@@ -75,7 +75,7 @@ class IndexedTarHelper:
     @contextmanager
     def build_indexedtarfile(no_files: int) -> Path:
         """
-        Builds a 'classic' tarfile of the desired number of files
+        Builds an indexedtarfile of the desired number of files
         using our 3.3 MB arome data file
         """
         with tempfile.TemporaryDirectory() as dst:

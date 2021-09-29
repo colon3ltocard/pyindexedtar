@@ -11,7 +11,7 @@ setup(
     version="1.0",
     license="MIT",
     python_requires='>=3.8',
-    description="python class to build uncompressed indexed tar archives for fast read",
+    description="build/search/extract_from uncompressed indexed tar archives for fast random access. The index is in the tar itself.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords = ['tar', 'indexed', 'archives'],

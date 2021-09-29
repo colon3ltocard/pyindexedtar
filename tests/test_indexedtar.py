@@ -36,6 +36,37 @@ def test_read(ithelper, arome_grib2: Path):
             ] + [IndexedTar._index_filename]
 
 
+def test_name_matching(ithelper, arome_grib2: Path):
+    """
+    Test our various tar member matching generators
+    """
+    no_files = 6
+    with tempfile.TemporaryDirectory() as td:
+        tdp = Path(td)
+        with IndexedTar(tdp / "indexed.tar", "x:") as it:
+            # let's simulate an archive spawning over
+            # several days of data with a jump
+            for the_date in ("2021_01_25", "2021_01_26", "2021_02_01"):
+                for i in range(no_files):
+                    it.add(arome_grib2, arcname=f"{the_date}/{i}_arome_t.grib2")
+        
+        with IndexedTar(tdp / "indexed.tar", "r:") as it:
+            # Now we read members using our filter methods
+            assert len(list(it.get_members_fnmatching("2021_01_26/*"))) == no_files
+            assert len(list(it.get_members_fnmatching("2021_01_26/*", do_reversed=True))) == no_files
+            assert len(list(it.get_members_fnmatching("*"))) == no_files*3
+
+            assert len(list(it.get_members_re("^2021"))) == no_files*3
+            assert len(list(it.get_members_re("^2021_02_01"))) == no_files
+            assert len(list(it.get_members_re("^2021_02_01", True))) == no_files
+
+            assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2", True))) == 1
+            assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2"))) == 1
+
+            assert it.getmember_at_index(0).name == "2021_01_25/0_arome_t.grib2"
+
+
+
 def test_append(ithelper, arome_grib2: Path, arpege_grib2: Path):
     """
     We test appending to an existing IndexedTar.

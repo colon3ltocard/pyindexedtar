@@ -48,12 +48,14 @@ _tar_index.json data                                o
 import tarfile
 import time
 import struct
+import fnmatch
+import re
 import io
 import json
 from pathlib import Path
 import tempfile
 from contextlib import contextmanager
-from typing import IO, Union
+from typing import IO, Generator, Union
 import logging
 
 
@@ -291,22 +293,47 @@ class IndexedTar:
 
     def get_members_by_name(
         self, name: str, do_reversed: bool = False
-    ) -> tarfile.TarInfo:
+    ) -> Generator[tarfile.TarInfo, None, None]:
         """
         Generator of members matching a name.
-        Set reversed to true to iterate from the end of the index.
+        Set do_reversed to true to iterate from the end of the index.
         """
 
         if name in (self._index_filename, self._header_filename):
             raise IndexedTarException(f"filename {name} is reserved")
+        
+        yield from self._get_members_matching(lambda x: x == name, do_reversed)
 
-        idx_gen = (x for x in self._index)
-        idx_gen = reversed(idx_gen) if do_reversed else idx_gen
+    def _get_members_matching(self, match_func, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+        """
+        Internal generator over members matching
+        a match_func return value
+        """
+        idx_gen = (x for x in self._index) if do_reversed else (x for x in reversed(self._index))
 
         for mname, m_info_offset, _, _ in idx_gen:
-            if mname == name:
+            if match_func(mname):
                 self._tarfile.offset = m_info_offset
                 yield self._tarfile.next()
+
+    def get_members_fnmatching(self, pattern: str, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+        """
+        Generator of members matching a fnmatch pattern.
+        Set do_reversed to true to iterate from the end of the index.
+        See https://docs.python.org/3/library/fnmatch.html
+        """
+        regex = fnmatch.translate(pattern)
+        yield from self.get_members_re(regex, do_reversed=do_reversed)
+        
+
+    def get_members_re(self, regex: str, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+        """
+        Generator of members matching a regex.
+        Set do_reversed to true to iterate from the end of the index.
+        See https://docs.python.org/3/library/re.html
+        """
+        reobj = re.compile(regex)
+        yield from self._get_members_matching(lambda x: reobj.match(x) is not None, do_reversed)
 
     def extract_members(self, members: list, path: Path = Path(".")):
         """
