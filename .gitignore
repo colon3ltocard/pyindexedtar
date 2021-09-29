@@ -130,3 +130,4 @@ dmypy.json
 
 # project specific
 fat.tar
+.benchmark

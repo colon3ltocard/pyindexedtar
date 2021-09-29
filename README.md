@@ -184,135 +184,18 @@ This gives us the following workflow to retrieve a member 'A':
 open Indexedtar >>> read first member ( = index offset) >>> seek at index offset >>> read index >>> lookup 'A''s offset in index >>> read 'A'.
 ```
 
-# Benchmark on a NVMe SSD and a 26.9 GB archive made of 3.2MB files
+# Benchmark on a desktop HDD for a 2.1 GB tarfile with 6094 members
 
-In case someone wants to reproduce the benchmark, the versions of the various software I used
-can be found below:
-
-```
-Ubuntu 20.04.3 LTS
-------
-pyenv 2.0.7-19-g9ecfdd10
-------
-Python 3.8.12
-[GCC 9.3.0] on linux
-------
-tar (GNU tar) 1.30
-```
-
-We built a "big tar" archive of 26.9 GB with 8000+ entries made of grib2 data files using the follwing cmd:
+We extract the last member of the archive. See `benchmark.py`.
 
 ```
-export PYTHONPATH="."; python indexedtar/utils.py
-ls -lh fat.tar
--rw-rw-r-- 1 frank frank 26G sept. 25 18:24 fat.tar
-```
+(indexenv) [frank@localhost pyindexedtar]$ python benchmark.py 
 
-Next we trace lseek syscalls.
-
+python IndexedTar average extraction time: 0.0156 seconds
+python Tar average extraction time: 1.5477 seconds
+GNU Tar average extraction time: 0.0476 seconds
 
 ```
-strace -e trace=lseek python benchmark.py fat.tar --mode other 2>&1 | grep lseek |wc -l
-```
-**>>> 40801 <<<**
-
-```
-strace -e trace=lseek python benchmark.py fat.tar --mode indexed 2>&1 | grep lseek |wc -l
-
-```
-**>>> 174 <<<**
-
-```
-strace -e lseek tar -xvf fat.tar '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' 2>&1 |grep lseek | wc -l
-```
-
-**>>> 8128 <<<**
-
-
-First conclusion: to get and extract the last member, using the builtin TarFile there are **40801** lseek syscalls versus **174** for our IndexedTar.
-The **tar** cli does 8128 (for retrieveing the 8125th member) which is what we expect (seeking from one member to the next)
-
-```
-time python benchmark.py fat.tar --mode other
-<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7f8844a334c0>
-
-real	0m0,639s
-user	0m0,478s
-sys	0m0,039s
-
-time python benchmark.py fat.tar --mode indexed
-Opening fat.tar, pax-headers: {}
-Seeking header offset at 1536
-Seeking index json at 26860269056 of len 821008
-[<TarInfo '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2' at 0x7fefdf038400>]
-
-real	0m0,073s
-user	0m0,064s
-sys	0m0,011s
-
-time tar -xvf fat.tar '8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2'
-8125_arome-france-hd_v2_2021-08-05_00_BRTMP_isobaric_0h.grib2
-
-real	0m0,027s
-user	0m0,004s
-sys	0m0,023s
-
-```
-
-Second conclusion: to get a member at the end of the archive, even on a SSD, we are 7x times faster. The tar C implementation
-even if it seeks more still gives the fastest unarchiving speed.
-
-# Benchmark on a NVMe SSD and a 26.9 GB archive made of 76000+ files of 352KB
-
-We built a second tar archive but using smaller files (see `utils.py`)
-
-```
-if __name__ == "__main__":
-    create_super_fat_tar(Path("arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"))
-```
-
-```
-time python benchmark.py fat.tar --mode other --member '76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2'
-<TarInfo '76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2' at 0x7f197b3bcb80>
-
-real	0m4,048s
-user	0m3,950s
-sys	0m0,083s
-
-----
-
-time tar -xvf fat.tar '76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2'
-76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2
-
-real	0m2,031s
-user	0m0,086s
-sys	0m0,209s
-
-
-----
-
-time python benchmark.py fat.tar --mode indexed --member '76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2'
-Opening fat.tar, pax-headers: {}
-Seeking header offset at 1536
-Seeking index json at 26989465088 of len 7467584
-[<TarInfo '76175_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2' at 0x7f08d0fcc700>]
-
-real	0m0,106s
-user	0m0,090s
-sys	0m0,019s
-
----
-
-```
-
-Conclusion: for a data archive of 26GB made of smaller files, the proposed IndexTar approach performs well.
-
-| Unarchiving method | Execution time [s] |
-| ------------------ | ------------------ |
-| python TarFile   | 4 seconds |
-| GNU tar | 0.3 second |
-| IndexedTar    | 0.1 second |
-
 
 # Compatiblity checks
 
