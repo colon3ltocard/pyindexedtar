@@ -144,8 +144,8 @@ print([x for x in it.get_members_by_name("8125_arome-france-hd_v2_2021-08-05_00_
 
 The trick here is to have a 'normal' binary file
 added at the beginning of the tar that serves as a
-pre-allocation of 2 unsigned long long to
-store offset and size of our json index.
+pre-allocation of 3 unsigned long long to
+store header and data offsets + the size of our index.
 
 When we close the archive we write the index
 as the last file in the tar and seek back to the
