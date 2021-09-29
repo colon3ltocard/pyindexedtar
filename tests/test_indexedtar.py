@@ -49,22 +49,27 @@ def test_name_matching(ithelper, arome_grib2: Path):
             for the_date in ("2021_01_25", "2021_01_26", "2021_02_01"):
                 for i in range(no_files):
                     it.add(arome_grib2, arcname=f"{the_date}/{i}_arome_t.grib2")
-        
-        with IndexedTar(tdp / "indexed.tar", "r:") as it:
-            # Now we read members using our filter methods
-            assert len(list(it.get_members_fnmatching("2021_01_26/*"))) == no_files
-            assert len(list(it.get_members_fnmatching("2021_01_26/*", do_reversed=True))) == no_files
-            assert len(list(it.get_members_fnmatching("*"))) == no_files*3
 
-            assert len(list(it.get_members_re("^2021"))) == no_files*3
+        with IndexedTar(tdp / "indexed.tar", "r:") as it:
+            # Now we read members using our filter methods
+            assert len(list(it.get_members_fnmatching("2021_01_26/*"))) == no_files
+            assert (
+                len(list(it.get_members_fnmatching("2021_01_26/*", do_reversed=True)))
+                == no_files
+            )
+            assert len(list(it.get_members_fnmatching("*"))) == no_files * 3
+
+            assert len(list(it.get_members_re("^2021"))) == no_files * 3
             assert len(list(it.get_members_re("^2021_02_01"))) == no_files
             assert len(list(it.get_members_re("^2021_02_01", True))) == no_files
 
-            assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2", True))) == 1
+            assert (
+                len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2", True)))
+                == 1
+            )
             assert len(list(it.get_members_by_name("2021_02_01/0_arome_t.grib2"))) == 1
 
             assert it.getmember_at_index(0).name == "2021_01_25/0_arome_t.grib2"
-
 
 
 def test_append(ithelper, arome_grib2: Path, arpege_grib2: Path):
@@ -174,34 +179,33 @@ def test_edge_cases(ithelper, arpege_grib2: Path):
     no_files: int = 4
     with ithelper.build_indexedtarfile(no_files) as itar_path:
         with IndexedTar(itar_path) as it:
-            # adding to a read-only it is forbidden
+            # adding to a read-only it is forbidden
             with pytest.raises(IndexedTarException):
                 it.add(arpege_grib2)
-            
+
         with IndexedTar(itar_path, "a:") as it:
 
-            # adding a file with add_dir is forbidden
+            # adding a file with add_dir is forbidden
             with pytest.raises(IndexedTarException):
                 it.add_dir(arpege_grib2)
 
-            # adding a dir with add is forbidden
+            # adding a dir with add is forbidden
             with pytest.raises(IndexedTarException):
                 it.add(arpege_grib2.parent)
 
-            # supplying a member of than Union[str, TarInfo] is forbidden
+            # supplying a member of than Union[str, TarInfo] is forbidden
             with pytest.raises(IndexedTarException):
                 it.extractfile(arpege_grib2)
 
             # compression is not supported
-            for unsupported_mode in ('r:gz', 'r:bz2', 'r:xz'):
+            for unsupported_mode in ("r:gz", "r:bz2", "r:xz"):
                 with pytest.raises(IndexedTarException):
                     IndexedTar(itar_path, mode=unsupported_mode)
-            
-            # A closed IndexedTar object cannot be used as 
+
+            # A closed IndexedTar object cannot be used as
             # a contextmanager anymore
             it = IndexedTar(itar_path)
             it.close()
             with pytest.raises(IndexedTarException):
-                with(it) as itt:
+                with (it) as itt:
                     itt.get_members_fnmatching("*")
-

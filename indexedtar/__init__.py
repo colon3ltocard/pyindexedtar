@@ -301,22 +301,30 @@ class IndexedTar:
 
         if name in (self._index_filename, self._header_filename):
             raise IndexedTarException(f"filename {name} is reserved")
-        
+
         yield from self._get_members_matching(lambda x: x == name, do_reversed)
 
-    def _get_members_matching(self, match_func, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+    def _get_members_matching(
+        self, match_func, do_reversed: bool = False
+    ) -> Generator[tarfile.TarInfo, None, None]:
         """
         Internal generator over members matching
         a match_func return value
         """
-        idx_gen = (x for x in self._index) if do_reversed else (x for x in reversed(self._index))
+        idx_gen = (
+            (x for x in self._index)
+            if do_reversed
+            else (x for x in reversed(self._index))
+        )
 
         for mname, m_info_offset, _, _ in idx_gen:
             if match_func(mname):
                 self._tarfile.offset = m_info_offset
                 yield self._tarfile.next()
 
-    def get_members_fnmatching(self, pattern: str, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+    def get_members_fnmatching(
+        self, pattern: str, do_reversed: bool = False
+    ) -> Generator[tarfile.TarInfo, None, None]:
         """
         Generator of members matching a fnmatch pattern.
         Set do_reversed to true to iterate from the end of the index.
@@ -324,16 +332,19 @@ class IndexedTar:
         """
         regex = fnmatch.translate(pattern)
         yield from self.get_members_re(regex, do_reversed=do_reversed)
-        
 
-    def get_members_re(self, regex: str, do_reversed: bool = False) -> Generator[tarfile.TarInfo, None, None]:
+    def get_members_re(
+        self, regex: str, do_reversed: bool = False
+    ) -> Generator[tarfile.TarInfo, None, None]:
         """
         Generator of members matching a regex.
         Set do_reversed to true to iterate from the end of the index.
         See https://docs.python.org/3/library/re.html
         """
         reobj = re.compile(regex)
-        yield from self._get_members_matching(lambda x: reobj.match(x) is not None, do_reversed)
+        yield from self._get_members_matching(
+            lambda x: reobj.match(x) is not None, do_reversed
+        )
 
     def extract_members(self, members: list, path: Path = Path(".")):
         """
@@ -379,7 +390,7 @@ class IndexedTar:
                         )
                     )
                 self._tarfile.fileobj.flush()
-        
+
         if self._tarfile:
             self._tarfile.close()
         self._tarfile = None
