@@ -3,6 +3,7 @@ Simple cli to compare
 IndexTar versus Tarfile
 """
 import os
+import random
 from math import ceil
 import tarfile
 from pathlib import Path
@@ -60,28 +61,33 @@ if __name__ == "__main__":
             Path("tests/data/arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"),
             fat_tar=fat_tar,
         )
-
-    last_member_name = "6094_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"
+    suffix = "_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"
     repeat = 10
+    random_members = [f"{random.randint(0, 6194)}{suffix}" for _ in range(repeat)]
     with tempfile.TemporaryDirectory() as td:
         tdp = Path(td)
         start_time = time.time()
-        for _ in range(repeat):
-            extract_indexed(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_indexed(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"python IndexedTar average extraction time: {delta:.4f} seconds")
 
+    with tempfile.TemporaryDirectory() as td:
         start_time = time.time()
-        for _ in range(repeat):
-            extract_builtin_tar(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_builtin_tar(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"python Tar average extraction time: {delta:.4f} seconds")
 
+    with tempfile.TemporaryDirectory() as td:
         start_time = time.time()
-        for _ in range(repeat):
-            extract_gnu_tar(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_gnu_tar(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"GNU Tar average extraction time: {delta:.4f} seconds")

@@ -95,13 +95,15 @@ with IndexedTar(pathlib.Path("fat.tar"), mode="r:") as it:
         it.extract_members(it.get_members_fnmatching("2021_01_26/*"))
 
         # find and extract members using regex
-        it.extract(it.get_members_re("^2021_02_01"))
+        it.extract_members(it.get_members_re("^2021_02_01"))
 
         # extract to specific outputdir 'out'
         it.extract_members(it.get_members_fnmatching("*.grib2"), path=Path("out"))
 ```
 
-# Benchmark on a desktop HDD for a 2.1 GB tarfile with 6094 members
+# Benchmark
+
+## HDD for a 2.1 GB tarfile with 6094 members
 
 We extract the last member of the archive. See `benchmark.py`.
 
@@ -112,6 +114,26 @@ python IndexedTar average extraction time: 0.0156 seconds
 python Tar average extraction time: 1.5477 seconds
 GNU Tar average extraction time: 0.0476 seconds
 
+```
+## SSD NVMe with a 2.1 GB tarfile containing 6094 members
+
+Reading 10 random members by name.
+
+```
+python IndexedTar average extraction time: 0.0033 seconds
+python Tar average extraction time: 0.3216 seconds
+GNU Tar average extraction time: 0.0188 seconds
+```
+
+
+## SSD NVMe with a 27 GB tarfile containing 76175 members
+
+Reading 10 random members by name.
+
+```
+python IndexedTar average extraction time: 0.0442 seconds
+python Tar average extraction time: 3.9926 seconds
+GNU Tar average extraction time: 0.1675 seconds
 ```
 
 # Concept
