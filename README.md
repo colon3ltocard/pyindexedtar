@@ -115,7 +115,7 @@ python Tar average extraction time: 1.5477 seconds
 GNU Tar average extraction time: 0.0476 seconds
 
 ```
-## SSD NVMe with a 2.1 GB tarfile containing 6094 members
+## SSD NVMe with a 2.1 GB tarfile containing 6094 members
 
 Reading 10 random members by name.
 
@@ -126,7 +126,7 @@ GNU Tar average extraction time: 0.0188 seconds
 ```
 
 
-## SSD NVMe with a 27 GB tarfile containing 76175 members
+## SSD NVMe with a 27 GB tarfile containing 76175 members
 
 Reading 10 random members by name.
 
