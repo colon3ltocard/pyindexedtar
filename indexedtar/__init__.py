@@ -346,12 +346,16 @@ class IndexedTar:
             lambda x: reobj.match(x) is not None, do_reversed
         )
 
-    def extract_members(self, members: list, path: Path = Path(".")):
+    def extract_members(
+        self, members: list, path: Path = Path("."), numeric_owner=False
+    ):
         """
         Extracts members into dstdir.
         Same risks and limitations as in python TarFile.
         """
-        self._tarfile.extractall(path=path, members=members)
+        self._tarfile.extractall(
+            path=path, members=members, numeric_owner=numeric_owner
+        )
 
     def close(self):
         """
