@@ -3,12 +3,14 @@ Simple cli to compare
 IndexTar versus Tarfile
 """
 import os
+import random
 from math import ceil
 import tarfile
 from pathlib import Path
 import time
 import tempfile
 from indexedtar import IndexedTar
+
 
 def create_super_fat_tar(
     onefile: Path, fat_tar: Path = Path("fat.tar"), target_size: int = 2 * 1024 ** 3
@@ -29,6 +31,7 @@ def create_super_fat_tar(
         it.add(onefile, arcname=f"{i}_{onefile.name}")
     it.close()
 
+
 def extract_indexed(src: Path, member_name: str, path: Path = Path(".")):
     with IndexedTar(src, mode="r:") as it:
         mbrs = [x for x in it.get_members_by_name(member_name)]
@@ -47,36 +50,44 @@ def extract_gnu_tar(src: Path, member_name: str, path: Path = Path(".")):
 
 if __name__ == "__main__":
     working_dir = Path(".") / ".benchmark"
-    
+
     if not working_dir.exists():
         working_dir.mkdir()
 
     fat_tar = working_dir / "fat.tar"
 
     if not fat_tar.exists():
-        create_super_fat_tar(Path("tests/data/arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"), fat_tar=fat_tar)
-
-    last_member_name = "6094_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"
+        create_super_fat_tar(
+            Path("tests/data/arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"),
+            fat_tar=fat_tar,
+        )
+    suffix = "_arpege-world_20210827_18_DLWRF_surface_acc_0-3h.grib2"
     repeat = 10
+    random_members = [f"{random.randint(0, 6194)}{suffix}" for _ in range(repeat)]
     with tempfile.TemporaryDirectory() as td:
         tdp = Path(td)
         start_time = time.time()
-        for _ in range(repeat):
-            extract_indexed(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_indexed(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"python IndexedTar average extraction time: {delta:.4f} seconds")
 
+    with tempfile.TemporaryDirectory() as td:
         start_time = time.time()
-        for _ in range(repeat):
-            extract_builtin_tar(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_builtin_tar(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"python Tar average extraction time: {delta:.4f} seconds")
 
+    with tempfile.TemporaryDirectory() as td:
         start_time = time.time()
-        for _ in range(repeat):
-            extract_gnu_tar(fat_tar, last_member_name, path=tdp)
+        for rdm in random_members:
+            extract_gnu_tar(fat_tar, rdm, path=tdp)
         end_time = time.time()
+        assert all((tdp / rdm).exists() for rdm in random_members)
         delta = (end_time - start_time) / repeat
         print(f"GNU Tar average extraction time: {delta:.4f} seconds")
