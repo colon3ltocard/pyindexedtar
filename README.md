@@ -6,6 +6,13 @@ An indexed Tar for big data archives featuring fast random access with an index 
 The use case is to retrieve members of a "many members" tar archive without seeking
 from one member to the next.
 
+* [Goals](https://github.com/colon3ltocard/pyindexedtar#goals)
+* [Installation](https://github.com/colon3ltocard/pyindexedtar#installation)
+* [Usage of the `itar` cli](https://github.com/colon3ltocard/pyindexedtar#usage-of-the-itar-cli)
+* [Usage of the `IndexedTar` class](https://github.com/colon3ltocard/pyindexedtar#usage-of-the-indexedtar-class)
+* [Benchmark](https://github.com/colon3ltocard/pyindexedtar#benchmark)
+* [Concept](https://github.com/colon3ltocard/pyindexedtar#concept)
+
 # Goals
 
 We constrained this code as follows:
@@ -26,6 +33,29 @@ python setup.py install
 ```
 
 Note: when using pyenv I needed to reactivate my virtualenv post-install to have the **itar** cli available.
+
+# Launching unit tests
+
+Linting and unit tests require additional dependencies.
+
+```shell
+pip install -r requirements.txt
+$ flake8 --max-line-length 120 indexedtar
+$ black --check indexedtar
+$ export PYTHONPATH="."; py.test --cov=indexedtar tests
+...                                                                                                                     [ 88%]
+tests/test_itar.py .                                                                                                                                                                      [100%]
+
+---------- coverage: platform linux, python 3.8.12-final-0 -----------
+Name                     Stmts   Miss  Cover
+--------------------------------------------
+indexedtar/__init__.py     172      6    97%
+indexedtar/itar.py          37      4    89%
+--------------------------------------------
+TOTAL                      209     10    95%
+
+```
+
 
 # Usage of the `itar` cli
 
