@@ -39,7 +39,7 @@ Note: when using pyenv I needed to reactivate my virtualenv post-install to have
 Linting and unit tests require additional dependencies.
 
 ```shell
-pip install -r requirements.txt
+$ pip install -r requirements.txt
 $ flake8 --max-line-length 120 indexedtar
 $ black --check indexedtar
 $ export PYTHONPATH="."; py.test --cov=indexedtar tests

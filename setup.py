@@ -1,4 +1,5 @@
 from setuptools import setup
+from indexedtar import IndexedTar
 
 with open("README.md") as f:
     long_description = f.read()
@@ -8,7 +9,7 @@ setup(
     author_email="frank.guibert.work@gmail.com",
     name="indexedtar",
     url="https://github.com/colon3ltocard/pyindexedtar",
-    version="1.0",
+    version=IndexedTar._version,
     license="MIT",
     python_requires=">=3.8",
     description="build/search/extract_from uncompressed indexed tar archives for fast random access. The index is in the tar itself.",
