@@ -1,5 +1,5 @@
 ![example workflow](https://github.com/colon3ltocard/pyindexedtar/actions/workflows/build.yml/badge.svg)
-# pyindexedtar
+# indexedtar
 
 An indexed Tar for big data archives featuring fast random access with an index bundled inside the tarfile.
 
@@ -26,13 +26,19 @@ preserve compatibility with existing tools
 
 # Installation
 
-For now I haven't released on pypi.
+Using pypi.
+
+```
+pip install indexedtar
+```
+
+From the sources after cloning this repo.
 
 ```
 python setup.py install
 ```
 
-Note: when using pyenv I needed to reactivate my virtualenv post-install to have the **itar** cli available.
+Note: when using pyenv I needed to relaunch my shell and virtualenv post-install to have the **itar** cli available.
 
 # Launching unit tests
 
@@ -55,7 +61,6 @@ indexedtar/itar.py          37      4    89%
 TOTAL                      209     10    95%
 
 ```
-
 
 # Usage of the `itar` cli
 

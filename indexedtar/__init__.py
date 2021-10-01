@@ -112,7 +112,7 @@ class IndexedTar:
     _header_struct = struct.Struct(">QQQ")
     _index_pax_key = "index_seek_offset"
     _header_offset_in_tar = None
-    _version = "1.0.0"
+    _version = "1.0.1"
 
     def __init__(self, filepath: Path, mode: str = "r:") -> None:
         """
